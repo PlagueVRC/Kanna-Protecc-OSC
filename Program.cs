@@ -72,7 +72,6 @@ namespace Kanna_Protecc_OSC
             if (e.ValueSource != ValueSource.VRChat) return;
 
             var paramname = e.Address.Replace("/avatar/parameters/", "");
-            var match = Config.InternalConfig.ProtecctedAvatarsData.FirstOrDefault(o => o.Values.ContainsKey(paramname));
 
             if (paramname == "TrackingType" && (int)e.NewValue == 2)
             {
