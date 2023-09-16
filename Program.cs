@@ -18,19 +18,12 @@ namespace Kanna_Protecc_OSC
             OscUtility.Initialize();
 
             OscParameter.ValueChanged += OscParameterOnValueChanged;
-            OscAvatarUtility.AvatarChanged += OscAvatarUtilityOnAvatarChanged;
 
             Helper = new WebAPIHelper(HandleData, "protecc", 3456);
 
-            Console.WriteLine("Ready.");
+            Console.WriteLine("Kanna Protecc OSC Helper is now ready. You can now select write keys in Unity within Kanna Protecc and this will save the keys, and apply them back automatically whenever you reset avatar.");
 
             await Task.Delay(Timeout.Infinite);
-        }
-
-        private static void OscAvatarUtilityOnAvatarChanged(OscAvatar sender, ValueChangedEventArgs<OscAvatar> e)
-        {
-            Console.WriteLine($"Changed Avatar To {e.NewValue.Id}");
-            Console.WriteLine($"Has Config: {e.NewValue.ToConfig() != null}");
         }
 
         public class KannaProteccKeysData
@@ -78,30 +71,25 @@ namespace Kanna_Protecc_OSC
 
         private static void OscParameterOnValueChanged(IReadOnlyOscParameterCollection sender, ParameterChangedEventArgs e)
         {
-            if (e.ValueSource == ValueSource.VRChat)
+            if (e.ValueSource != ValueSource.VRChat) return;
+
+            var paramname = e.Address.Replace("/avatar/parameters/", "");
+
+            //Console.WriteLine($"Param Update: {paramname} From {e.OldValue} To {e.NewValue}");
+
+            if (paramname == "TrackingType" && e.NewValue is 2)
             {
-                var paramname = e.Address.Replace("/avatar/parameters/", "");
+                Console.WriteLine("Possible Avatar Reset Detected");
 
-                if (paramname == "TrackingType")
+                foreach (var avatardata in Config.InternalConfig.ProtecctedAvatarsData)
                 {
-                    if ((int)e.NewValue == 2)
+                    foreach (var param in avatardata.Values)
                     {
-                        Console.WriteLine($"Possible Avatar Reset Detected");
+                        OscParameter.SendAvatarParameter(param.Key, param.Value);
                     }
                 }
 
-                Console.WriteLine($"Param Update: {paramname} From {e.OldValue} To {e.NewValue}");
-
-                var match = Config.InternalConfig.ProtecctedAvatarsData.FirstOrDefault(o => o.Values.ContainsKey(paramname));
-
-                if (match != null)
-                {
-                    if ((bool)match.Values[paramname] != (bool)e.NewValue)
-                    {
-                        Console.WriteLine($"Fixing Param: {paramname} From {e.NewValue} To {match.Values[paramname]}");
-                        OscParameter.SendAvatarParameter(paramname, match.Values[paramname]);
-                    }
-                }
+                return;
             }
         }
     }
